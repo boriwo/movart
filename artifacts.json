@@ -1,0 +1,252 @@
+[
+    {
+        "Text": " ",
+        "AbsGS": 0,
+        "NormGS": 0
+    },
+    {
+        "Text": "`",
+        "AbsGS": 18,
+        "NormGS": 16
+    },
+    {
+        "Text": ".",
+        "AbsGS": 36,
+        "NormGS": 33
+    },
+    {
+        "Text": ",",
+        "AbsGS": 39,
+        "NormGS": 36
+    },
+    {
+        "Text": "~",
+        "AbsGS": 48,
+        "NormGS": 44
+    },
+    {
+        "Text": "|",
+        "AbsGS": 54,
+        "NormGS": 50
+    },
+    {
+        "Text": "^",
+        "AbsGS": 57,
+        "NormGS": 52
+    },
+    {
+        "Text": "]",
+        "AbsGS": 63,
+        "NormGS": 58
+    },
+    {
+        "Text": "[",
+        "AbsGS": 69,
+        "NormGS": 64
+    },
+    {
+        "Text": "}",
+        "AbsGS": 72,
+        "NormGS": 66
+    },
+    {
+        "Text": ";",
+        "AbsGS": 75,
+        "NormGS": 69
+    },
+    {
+        "Text": "+",
+        "AbsGS": 81,
+        "NormGS": 75
+    },
+    {
+        "Text": "=",
+        "AbsGS": 84,
+        "NormGS": 77
+    },
+    {
+        "Text": "*",
+        "AbsGS": 87,
+        "NormGS": 80
+    },
+    {
+        "Text": "i",
+        "AbsGS": 93,
+        "NormGS": 86
+    },
+    {
+        "Text": "<",
+        "AbsGS": 96,
+        "NormGS": 89
+    },
+    {
+        "Text": "l",
+        "AbsGS": 99,
+        "NormGS": 91
+    },
+    {
+        "Text": ">",
+        "AbsGS": 102,
+        "NormGS": 94
+    },
+    {
+        "Text": "1",
+        "AbsGS": 105,
+        "NormGS": 97
+    },
+    {
+        "Text": "?",
+        "AbsGS": 111,
+        "NormGS": 102
+    },
+    {
+        "Text": "v",
+        "AbsGS": 117,
+        "NormGS": 108
+    },
+    {
+        "Text": "z",
+        "AbsGS": 123,
+        "NormGS": 114
+    },
+    {
+        "Text": "u",
+        "AbsGS": 126,
+        "NormGS": 116
+    },
+    {
+        "Text": "C",
+        "AbsGS": 129,
+        "NormGS": 119
+    },
+    {
+        "Text": "n",
+        "AbsGS": 135,
+        "NormGS": 125
+    },
+    {
+        "Text": "2",
+        "AbsGS": 141,
+        "NormGS": 130
+    },
+    {
+        "Text": "s",
+        "AbsGS": 144,
+        "NormGS": 133
+    },
+    {
+        "Text": "&",
+        "AbsGS": 147,
+        "NormGS": 136
+    },
+    {
+        "Text": "k",
+        "AbsGS": 150,
+        "NormGS": 139
+    },
+    {
+        "Text": "5",
+        "AbsGS": 156,
+        "NormGS": 144
+    },
+    {
+        "Text": "p",
+        "AbsGS": 159,
+        "NormGS": 147
+    },
+    {
+        "Text": "G",
+        "AbsGS": 162,
+        "NormGS": 150
+    },
+    {
+        "Text": "9",
+        "AbsGS": 165,
+        "NormGS": 153
+    },
+    {
+        "Text": "6",
+        "AbsGS": 171,
+        "NormGS": 158
+    },
+    {
+        "Text": "V",
+        "AbsGS": 177,
+        "NormGS": 164
+    },
+    {
+        "Text": "@",
+        "AbsGS": 180,
+        "NormGS": 166
+    },
+    {
+        "Text": "F",
+        "AbsGS": 183,
+        "NormGS": 169
+    },
+    {
+        "Text": "H",
+        "AbsGS": 186,
+        "NormGS": 172
+    },
+    {
+        "Text": "#",
+        "AbsGS": 189,
+        "NormGS": 175
+    },
+    {
+        "Text": "b",
+        "AbsGS": 192,
+        "NormGS": 178
+    },
+    {
+        "Text": "q",
+        "AbsGS": 195,
+        "NormGS": 180
+    },
+    {
+        "Text": "X",
+        "AbsGS": 198,
+        "NormGS": 183
+    },
+    {
+        "Text": "Z",
+        "AbsGS": 201,
+        "NormGS": 186
+    },
+    {
+        "Text": "A",
+        "AbsGS": 207,
+        "NormGS": 192
+    },
+    {
+        "Text": "K",
+        "AbsGS": 210,
+        "NormGS": 194
+    },
+    {
+        "Text": "E",
+        "AbsGS": 216,
+        "NormGS": 200
+    },
+    {
+        "Text": "B",
+        "AbsGS": 225,
+        "NormGS": 208
+    },
+    {
+        "Text": "N",
+        "AbsGS": 261,
+        "NormGS": 242
+    },
+    {
+        "Text": "W",
+        "AbsGS": 264,
+        "NormGS": 244
+    },
+    {
+        "Text": "M",
+        "AbsGS": 276,
+        "NormGS": 256
+    }
+]
