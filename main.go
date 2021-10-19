@@ -40,27 +40,10 @@ var (
 // readVideoAndAudio reads video and audio frames
 // from the opened media and sends the decoded
 // data to che channels to be played.
-func readVideoAndAudio(media *reisen.Media) (<-chan *image.RGBA, <-chan [2]float64, chan error, error) {
+func readVideoAndAudio(media *reisen.Media, videoStream *reisen.VideoStream, audioStream *reisen.AudioStream) (<-chan *image.RGBA, <-chan [2]float64, chan error, error) {
 	frameBuffer := make(chan *image.RGBA, frameBufferSize)
 	sampleBuffer := make(chan [2]float64, sampleBufferSize)
 	errs := make(chan error)
-	err := media.OpenDecode()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	videoStreams :=  media.VideoStreams()
-	videoStream := videoStreams[0]
-	err = videoStream.Open()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	width = videoStream.Width()
-	height = videoStream.Height()
-	audioStream := media.AudioStreams()[0]
-	err = audioStream.Open()
-	if err != nil {
-		return nil, nil, nil, err
-	}
 	go func() {
 		for {
 			packet, gotPacket, err := media.ReadPacket()
@@ -90,7 +73,8 @@ func readVideoAndAudio(media *reisen.Media) (<-chan *image.RGBA, <-chan [2]float
 				if videoFrame == nil {
 					continue
 				}
-				// flip image
+				// flip image if needed
+				// flip image if needed
 				//flippedImage := imaging.FlipV(videoFrame.Image())
 				//bounds := flippedImage.Bounds()
 				//flippedImageRGBA := image.NewRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))

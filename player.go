@@ -86,9 +86,6 @@ func (player *Player) Start(fname string) error {
 	if err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
 	// Open the media file.
 	media, err := reisen.NewMedia(fname)
 	if err != nil {
@@ -102,8 +99,25 @@ func (player *Player) Start(fname string) error {
 			spf = 1.0/float64(frameRateNum/freameRateDen) // "seconds per frame"
 		}
 	}
-	fmt.Printf("video fpr %d %d\n", frameRateNum, freameRateDen)
 	frameDuration, err := time.ParseDuration(fmt.Sprintf("%fs", spf))
+	if err != nil {
+		return err
+	}
+	// open streams
+	err = media.OpenDecode()
+	if err != nil {
+		return err
+	}
+	videoStreams :=  media.VideoStreams()
+	videoStream := videoStreams[0]
+	err = videoStream.Open()
+	if err != nil {
+		return err
+	}
+	width = videoStream.Width()
+	height = videoStream.Height()
+	audioStream := media.AudioStreams()[0]
+	err = audioStream.Open()
 	if err != nil {
 		return err
 	}
@@ -111,7 +125,7 @@ func (player *Player) Start(fname string) error {
 	var sampleSource <-chan [2]float64
 	// Sprite for drawing video frames.
 	player.videoSprite, err = ebiten.NewImage(width, height, ebiten.FilterDefault)
-	player.frameBuffer, sampleSource, player.errs, err = readVideoAndAudio(media)
+	player.frameBuffer, sampleSource, player.errs, err = readVideoAndAudio(media, videoStream, audioStream)
 	if err != nil {
 		return err
 	}
