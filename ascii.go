@@ -18,7 +18,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"image"
 	"image/draw"
@@ -47,16 +46,6 @@ const (
 )
 
 var (
-	asciiWidth    = flag.Int("width", 250, "width in characters")
-	asciiHeight   = flag.Int("height", 80, "height in characters")
-	fontfile = flag.String("fontfile", "", "filename of a ttf font, preferably a monospaced one such as Courier")
-	//file     = flag.String("file", "", "filename of the image file (supported are png and jpeg), if omitted current directory will be scanned for files, skip from image to image with enter")
-	exact    = flag.Bool("exact", false, "require exact match for shade")
-	mode     = flag.String("mode", "mono", "mode can be mono, gray or color, default is mono")
-	alphabet = flag.String("alphabet", defaultAlphabet, "alphabet to use for art, if not set all printable ascii characters will be used")
-	debug    = flag.Bool("debug", false, "if set to true some performance data will be printed")
-	html     = flag.Bool("html", false, "output html instead of ascii")
-	negative = flag.Bool("negative", true, "set to true if white text on black background, otherwise false")
 )
 
 var (
@@ -152,58 +141,23 @@ func getXtermGray(r, g, b int) string {
 	return "\x1B[38;5;" + strconv.Itoa(code) + "m"
 }
 
-func getHtmlColor(r, g, b int) string {
-	r = 255 * r / maxColor
-	g = 255 * g / maxColor
-	b = 255 * b / maxColor
-	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "<font color='#%2x%2x%2x'>", r, g, b)
-	return buf.String()
-}
-
-func getHtmlGray(r, g, b int) string {
-	code := 255 * (r + g + b) / (3 * maxColor)
-	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "<font color='#%2x%2x%2x'>", code, code, code)
-	return buf.String()
-}
-
-func getColor(r, g, b int, doHtml bool) string {
-	if doHtml {
-		return getHtmlColor(r, g, b)
-	} else {
+func getColor(r, g, b int) string {
 		return getXtermColor(r, g, b)
-	}
 }
 
-func getGray(r, g, b int, doHtml bool) string {
-	if doHtml {
-		return getHtmlGray(r, g, b)
-	} else {
+func getGray(r, g, b int) string {
 		return getXtermGray(r, g, b)
-	}
 }
 
-func getMono(r, g, b int, doHtml bool) string {
-	if doHtml {
-		if *negative {
-			return getHtmlColor(maxColor, maxColor, maxColor)
-		} else {
-			return getHtmlColor(0, 0, 0)
-		}
-	} else {
+func getMono(r, g, b int) string {
 		return ""
-	}
 }
 
-func getResetColor(doHtml bool) string {
-	if doHtml {
-		return "</font>"
-	}
+func getResetColor() string {
 	return ""
 }
 
-func analyzeImage(img *image.RGBA, doHtml bool) []string {
+func analyzeImage(img *image.RGBA) []string {
 	defer trackTime(time.Now(), "analyze_image")
 	numRows := *asciiWidth
 	numLines := *asciiHeight
@@ -250,13 +204,13 @@ func analyzeImage(img *image.RGBA, doHtml bool) []string {
 				normB := ascii[l][o].b / (boxWidth * boxHeight)
 				switch *mode {
 				case "color":
-					buffer.WriteString(getColor(normR, normG, normB, doHtml))
+					buffer.WriteString(getColor(normR, normG, normB))
 					break
 				case "gray":
-					buffer.WriteString(getGray(normR, normG, normB, doHtml))
+					buffer.WriteString(getGray(normR, normG, normB))
 					break
 				case "mono":
-					buffer.WriteString(getMono(normR, normG, normB, doHtml))
+					buffer.WriteString(getMono(normR, normG, normB))
 				}
 				a := artifacts.FindClosest(normGS)
 				if *exact && a.NormGS != normGS {
@@ -266,13 +220,13 @@ func analyzeImage(img *image.RGBA, doHtml bool) []string {
 				}
 				switch *mode {
 				case "color":
-					buffer.WriteString(getResetColor(doHtml))
+					buffer.WriteString(getResetColor())
 					break
 				case "gray":
-					buffer.WriteString(getResetColor(doHtml))
+					buffer.WriteString(getResetColor())
 					break
 				case "mono":
-					buffer.WriteString(getResetColor(doHtml))
+					buffer.WriteString(getResetColor())
 				}
 			}
 			lines[l] = buffer.String()
@@ -291,25 +245,8 @@ func printASCII(w io.Writer, lines []string) {
 	fmt.Fprint(w, resetTermColor)
 }
 
-func printHTML(w io.Writer, lines []string) {
-	defer trackTime(time.Now(), "print_html")
-	if *negative {
-		fmt.Fprintf(w, "<html><body bgcolor='#000000'><p><font face='Courier' size='4'>\n")
-	} else {
-		fmt.Fprintf(w, "<html><body bgcolor='#ffffff'><p><font face='Courier' size='4'>\n")
-	}
-	for _, line := range lines {
-		fmt.Fprintf(w, "%s<br/>\n", line)
-	}
-	fmt.Fprintf(w, "</font></p></body></html>\n")
-}
-
-func print(w io.Writer, lines []string, doHtml bool) {
-	if doHtml {
-		printHTML(w, lines)
-	} else {
+func print(w io.Writer, lines []string) {
 		printASCII(w, lines)
-	}
 }
 
 func getImage(name string) *image.Image {
@@ -422,44 +359,3 @@ func loadCharacterMap() SortedGS {
 func initAscii() {
 	artifacts = loadCharacterMap()
 }
-
-/*func main() {
-	flag.Parse()
-	if *fontfile == "" {
-		if *alphabet != defaultAlphabet || !(*negative) {
-			*fontfile = defaultTtfFile
-		}
-	}
-	if *fontfile != "" {
-		artifacts = analyzeFont(*fontfile)
-	} else {
-		artifacts = loadCharacterMap()
-	}
-	if *file != "" {
-		print(os.Stdout, analyzeImage(getImage(*file), *html), *html)
-	} else {
-		fileInfos, err := ioutil.ReadDir("./")
-		if err != nil {
-			log.Fatal(err)
-		}
-		imageFiles := make([]string, 0)
-		for _, info := range fileInfos {
-			if strings.HasSuffix(strings.ToLower(info.Name()), ".png") || strings.HasSuffix(strings.ToLower(info.Name()), ".jpg") || strings.HasSuffix(strings.ToLower(info.Name()), ".jpeg") {
-				imageFiles = append(imageFiles, info.Name())
-			}
-		}
-		if len(imageFiles) == 0 {
-			return
-		}
-		img := getImage(imageFiles[0])
-		for i := 1; i < len(imageFiles); i++ {
-			fmt.Printf("file=%s\n", imageFiles[i-1])
-			print(os.Stdout, analyzeImage(img, *html), *html)
-			img = getImage(imageFiles[i])
-			s := ""
-			fmt.Scanf("%s", &s)
-		}
-		fmt.Printf("file=%s\n", imageFiles[len(imageFiles)-1])
-		print(os.Stdout, analyzeImage(img, *html), *html)
-	}
-}*/

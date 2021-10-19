@@ -4,15 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"flag"
-	"fmt"
-	"image"
-	"os"
-	"time"
-
 	"github.com/faiface/beep"
-	"github.com/faiface/beep/speaker"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/zergon321/reisen"
+	"image"
 )
 
 const (
@@ -29,6 +24,17 @@ var (
 	//height                            = 1080
 	width                             = 1280
 	height                            = 720
+	//width                             = 1280
+	//height                            = 546
+	filename = flag.String("file", "demo.mp4", "media file name")
+	asciiWidth    = flag.Int("width", 250, "width in characters")
+	asciiHeight   = flag.Int("height", 80, "height in characters")
+	fontfile = flag.String("fontfile", "", "filename of a ttf font, preferably a monospaced one such as Courier")
+	exact    = flag.Bool("exact", false, "require exact match for shade")
+	mode     = flag.String("mode", "mono", "mode can be mono, gray or color, default is mono")
+	alphabet = flag.String("alphabet", defaultAlphabet, "alphabet to use for art, if not set all printable ascii characters will be used")
+	debug    = flag.Bool("debug", false, "if set to true some performance data will be printed")
+	negative = flag.Bool("negative", true, "set to true if white text on black background, otherwise false")
 )
 
 // readVideoAndAudio reads video and audio frames
@@ -167,133 +173,15 @@ func streamSamples(sampleSource <-chan [2]float64) beep.Streamer {
 	})
 }
 
-// Game holds all the data
-// necessary for playing video.
-type Game struct {
-	videoSprite            *ebiten.Image
-	ticker                 <-chan time.Time
-	errs                   <-chan error
-	frameBuffer            <-chan *image.RGBA
-	fps                    int
-	videoTotalFramesPlayed int
-	videoPlaybackFPS       int
-	perSecond              <-chan time.Time
-	last                   time.Time
-	deltaTime              float64
-}
-
-// Strarts reading samples and frames
-// of the media file.
-func (game *Game) Start(fname string) error {
-	// Initialize the audio speaker.
-	err := speaker.Init(sampleRate, SpeakerSampleRate.N(time.Second/10))
-	if err != nil {
-		return err
-	}
-	if err != nil {
-		return err
-	}
-	// Open the media file.
-	media, err := reisen.NewMedia(fname)
-	if err != nil {
-		return err
-	}
-	spf := float64(1.0)
-	var frameRateNum, freameRateDen int
-	for _, stream := range media.Streams() {
-		if stream.Type() == reisen.StreamVideo {
-			frameRateNum, freameRateDen = stream.FrameRate()
-			spf = 1.0/float64(frameRateNum/freameRateDen) // "seconds per frame"
-		}
-	}
-	fmt.Printf("video fpr %d %d\n", frameRateNum, freameRateDen)
-	frameDuration, err := time.ParseDuration(fmt.Sprintf("%fs", spf))
-	if err != nil {
-		return err
-	}
-	// Start decoding streams.
-	var sampleSource <-chan [2]float64
-	// Sprite for drawing video frames.
-	game.videoSprite, err = ebiten.NewImage(width, height, ebiten.FilterDefault)
-	game.frameBuffer, sampleSource, game.errs, err = readVideoAndAudio(media)
-	if err != nil {
-		return err
-	}
-	// Start playing audio samples.
-	speaker.Play(streamSamples(sampleSource))
-	game.ticker = time.Tick(frameDuration)
-	// Setup metrics.
-	game.last = time.Now()
-	game.fps = 0
-	game.perSecond = time.Tick(time.Second)
-	game.videoTotalFramesPlayed = 0
-	game.videoPlaybackFPS = 0
-	return nil
-}
-
-func (game *Game) Update(screen *ebiten.Image) error {
-	// Compute dt.
-	game.deltaTime = time.Since(game.last).Seconds()
-	game.last = time.Now()
-	// Check for incoming errors.
-	select {
-	case err, ok := <-game.errs:
-		if ok {
-			return err
-		}
-	default:
-	}
-	// Read video frames and draw them.
-	select {
-	case <-game.ticker:
-		frame, ok := <-game.frameBuffer
-		if ok {
-			// asciify image
-			// ansi escape codes
-			//fmt.Print("\033[2J") // clear screen
-			fmt.Printf("\033[%d;%dH", 0, 0) // set cursor position
-			fmt.Print("\033[2~")            // insert mode
-			asciiLines := analyzeImage(frame, false)
-			print(os.Stdout, asciiLines, false)
-			game.videoSprite.ReplacePixels(frame.Pix)
-			game.videoTotalFramesPlayed++
-			game.videoPlaybackFPS++
-		}
-	default:
-	}
-	// Draw the video sprite.
-	op := &ebiten.DrawImageOptions{}
-	err := screen.DrawImage(game.videoSprite, op)
-	if err != nil {
-		return err
-	}
-	game.fps++
-	// Update metrics in the window title.
-	select {
-	case <-game.perSecond:
-		ebiten.SetWindowTitle(fmt.Sprintf("%s | FPS: %d | dt: %f | Frames: %d | Video FPS: %d",
-			"Video", game.fps, game.deltaTime, game.videoTotalFramesPlayed, game.videoPlaybackFPS))
-		game.fps = 0
-		game.videoPlaybackFPS = 0
-	default:
-	}
-	return nil
-}
-
-func (game *Game) Layout(a, b int) (int, int) {
-	return width, height
-}
-
 func main() {
-	filename := flag.String("file", "demo.mp4", "media file name")
 	flag.Parse()
 	initAscii()
-	game := &Game{}
-	err := game.Start(*filename)
+	player := &Player{}
+	err := player.Start(*filename)
 	handleError(err)
 	ebiten.SetWindowSize(width, height)
 	ebiten.SetWindowTitle("Video")
-	err = ebiten.RunGame(game)
+	err = ebiten.RunGame(player)
 	handleError(err)
 }
 
