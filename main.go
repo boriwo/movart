@@ -25,8 +25,10 @@ const (
 )
 
 var (
-	width                             = 1920 //1280
-	height                            = 1080 //720
+	//width                             = 1920
+	//height                            = 1080
+	width                             = 1280
+	height                            = 720
 )
 
 // readVideoAndAudio reads video and audio frames
@@ -64,6 +66,7 @@ func readVideoAndAudio(media *reisen.Media) (<-chan *image.RGBA, <-chan [2]float
 			if !gotPacket {
 				break
 			}
+			//TODO: make sure audio and video stays in sync
 			switch packet.Type() {
 			case reisen.StreamVideo:
 				s := media.Streams()[packet.StreamIndex()].(*reisen.VideoStream)
@@ -87,14 +90,7 @@ func readVideoAndAudio(media *reisen.Media) (<-chan *image.RGBA, <-chan [2]float
 				//flippedImageRGBA := image.NewRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
 				//draw.Draw(flippedImageRGBA, flippedImageRGBA.Bounds(), flippedImage, bounds.Min, draw.Src)
 				//frameBuffer <- flippedImageRGBA
-				// asciify image
-				// ansi escape codes
-				//fmt.Print("\033[2J") // clear screen
-				fmt.Printf("\033[%d;%dH", 0, 0) // set cursor position
-				fmt.Print("\033[2~") // insert mode
-				asciiLines := analyzeImage(videoFrame.Image(), false)
-				print(os.Stdout, asciiLines, false)
-				//frameBuffer <- videoFrame.Image()
+				frameBuffer <- videoFrame.Image()
 			case reisen.StreamAudio:
 				s := media.Streams()[packet.StreamIndex()].(*reisen.AudioStream)
 				audioFrame, gotFrame, err := s.ReadAudioFrame()
@@ -203,12 +199,14 @@ func (game *Game) Start(fname string) error {
 		return err
 	}
 	spf := float64(1.0)
+	var frameRateNum, freameRateDen int
 	for _, stream := range media.Streams() {
 		if stream.Type() == reisen.StreamVideo {
-			videoFps, _ := stream.FrameRate()
-			spf = 1.0/float64(videoFps) // "seconds per frame"
+			frameRateNum, freameRateDen = stream.FrameRate()
+			spf = 1.0/float64(frameRateNum/freameRateDen) // "seconds per frame"
 		}
 	}
+	fmt.Printf("video fpr %d %d\n", frameRateNum, freameRateDen)
 	frameDuration, err := time.ParseDuration(fmt.Sprintf("%fs", spf))
 	if err != nil {
 		return err
@@ -250,6 +248,13 @@ func (game *Game) Update(screen *ebiten.Image) error {
 	case <-game.ticker:
 		frame, ok := <-game.frameBuffer
 		if ok {
+			// asciify image
+			// ansi escape codes
+			//fmt.Print("\033[2J") // clear screen
+			fmt.Printf("\033[%d;%dH", 0, 0) // set cursor position
+			fmt.Print("\033[2~")            // insert mode
+			asciiLines := analyzeImage(frame, false)
+			print(os.Stdout, asciiLines, false)
 			game.videoSprite.ReplacePixels(frame.Pix)
 			game.videoTotalFramesPlayed++
 			game.videoPlaybackFPS++
