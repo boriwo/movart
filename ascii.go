@@ -15,21 +15,16 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"image"
 	"image/draw"
-	"image/jpeg"
-	"image/png"
 	"io"
 	"io/ioutil"
 	"log"
-	"os"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -153,10 +148,6 @@ func getMono(r, g, b int) string {
 		return ""
 }
 
-func getResetColor() string {
-	return ""
-}
-
 func analyzeImage(img *image.RGBA) []string {
 	defer trackTime(time.Now(), "analyze_image")
 	numRows := *asciiWidth
@@ -209,24 +200,12 @@ func analyzeImage(img *image.RGBA) []string {
 				case "gray":
 					buffer.WriteString(getGray(normR, normG, normB))
 					break
-				case "mono":
-					buffer.WriteString(getMono(normR, normG, normB))
 				}
 				a := artifacts.FindClosest(normGS)
 				if *exact && a.NormGS != normGS {
 					buffer.WriteString(" ")
 				} else {
 					buffer.WriteString(a.Text)
-				}
-				switch *mode {
-				case "color":
-					buffer.WriteString(getResetColor())
-					break
-				case "gray":
-					buffer.WriteString(getResetColor())
-					break
-				case "mono":
-					buffer.WriteString(getResetColor())
 				}
 			}
 			lines[l] = buffer.String()
@@ -247,25 +226,6 @@ func printASCII(w io.Writer, lines []string) {
 
 func print(w io.Writer, lines []string) {
 		printASCII(w, lines)
-}
-
-func getImage(name string) *image.Image {
-	defer trackTime(time.Now(), "get_image")
-	var img image.Image
-	f, err := os.Open(name)
-	if err != nil {
-		log.Fatal(err)
-	}
-	b := bufio.NewReader(f)
-	if strings.HasSuffix(strings.ToLower(name), ".png") {
-		img, err = png.Decode(b)
-	} else if strings.HasSuffix(strings.ToLower(name), ".jpg") || strings.HasSuffix(strings.ToLower(name), ".jpeg") {
-		img, err = jpeg.Decode(b)
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-	return &img
 }
 
 func trackTime(start time.Time, name string) {
