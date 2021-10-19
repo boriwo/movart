@@ -8,7 +8,6 @@ import (
 
 const (
 	frameBufferSize                   = 1024
-	sampleRate                        = 44100
 	channelCount                      = 2
 	bitDepth                          = 8
 	sampleBufferSize                  = 32 * channelCount * bitDepth * 1024
@@ -16,6 +15,7 @@ const (
 )
 
 var (
+	sampleRate                        = 44100
 	width                             = 1280
 	height                            = 720
 	playAudio = flag.Bool("playAudio", false, "play audio stream")

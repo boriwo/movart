@@ -70,14 +70,6 @@ func (player *Player) Layout(a, b int) (int, int) {
 }
 
 func (player *Player) Start(fname string) error {
-	// init speaker
-	//TODO: parse sample rate
-	if *playAudio {
-		err := speaker.Init(sampleRate, SpeakerSampleRate.N(time.Second/10))
-		if err != nil {
-			return err
-		}
-	}
 	// find frame rate
 	media, err := reisen.NewMedia(fname)
 	if err != nil {
@@ -109,9 +101,17 @@ func (player *Player) Start(fname string) error {
 	width = videoStream.Width()
 	height = videoStream.Height()
 	audioStream := media.AudioStreams()[0]
+	// init speaker
 	err = audioStream.Open()
 	if err != nil {
 		return err
+	}
+	sampleRate = audioStream.SampleRate()
+	if *playAudio {
+		err := speaker.Init(beep.SampleRate(sampleRate), SpeakerSampleRate.N(time.Second/10))
+		if err != nil {
+			return err
+		}
 	}
 	// start decoding streams
 	var sampleSource <-chan [2]float64
