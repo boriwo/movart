@@ -357,5 +357,9 @@ func loadCharacterMap() SortedGS {
 }
 
 func initAscii() {
-	artifacts = loadCharacterMap()
+	if *fontfile != "" {
+		artifacts = analyzeFont(*fontfile)
+	} else {
+		artifacts = loadCharacterMap()
+	}
 }
