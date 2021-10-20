@@ -45,7 +45,7 @@ func (player *Player) Render() error {
 			//fmt.Print("\033[2J") // clear screen
 			fmt.Printf("\033[%d;%dH", 0, 0) // set cursor position
 			fmt.Print("\033[2~")            // insert mode
-			asciiLines := analyzeImage(frame)
+			asciiLines := analyzeImage(frame, ascii)
 			print(os.Stdout, asciiLines)
 			player.videoTotalFramesPlayed++
 			player.videoPlaybackFPS++

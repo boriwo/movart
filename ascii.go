@@ -144,11 +144,19 @@ func getGray(r, g, b int) string {
 		return getXtermGray(r, g, b)
 }
 
-func getMono(r, g, b int) string {
-		return ""
+func allocateAsciiArray() [][]ColorPoint{
+	numRows := *asciiWidth
+	numLines := *asciiHeight
+	ascii := make([][]ColorPoint, numLines)
+	for l := 0; l < numLines; l++ {
+		ascii[l] = make([]ColorPoint, numRows)
+	}
+	return ascii
 }
 
-func analyzeImage(img *image.RGBA) []string {
+func analyzeImage(img *image.RGBA, ascii [][]ColorPoint) []string {
+	lock.Lock()
+	defer lock.Unlock()
 	defer trackTime(time.Now(), "analyze_image")
 	numRows := *asciiWidth
 	numLines := *asciiHeight
@@ -157,12 +165,14 @@ func analyzeImage(img *image.RGBA) []string {
 	min := 0
 	max := maxColor * boxHeight * boxWidth
 	var wait sync.WaitGroup
-	ascii := make([][]ColorPoint, numLines)
 	for l := 0; l < numLines; l++ {
 		wait.Add(1)
 		go func(l int) {
-			ascii[l] = make([]ColorPoint, numRows)
 			for o := 0; o < numRows; o++ {
+				ascii[l][o].r = 0
+				ascii[l][o].g = 0
+				ascii[l][o].b = 0
+				ascii[l][o].sum = 0
 				for y := 0; y < boxHeight; y++ {
 					for x := 0; x < boxWidth; x++ {
 						col := (*img).At(o*boxWidth+x, l*boxHeight+y)

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/faiface/beep"
+	"sync"
 	"time"
 )
 
@@ -28,6 +29,8 @@ var (
 	alphabet = flag.String("alphabet", defaultAlphabet, "alphabet to use for art, if not set all printable ascii characters will be used")
 	debug    = flag.Bool("debug", false, "if set to true some performance data will be printed")
 	negative = flag.Bool("negative", true, "set to true if white text on black background, otherwise false")
+	ascii = allocateAsciiArray()
+	lock sync.RWMutex
 )
 
 func main() {
