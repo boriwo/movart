@@ -194,6 +194,7 @@ func analyzeImage(img *image.RGBA, ascii [][]ColorPoint) []string {
 	}
 	wait.Wait()
 	lines := make([]string, numLines)
+	lastNormRGB := 0
 	for l := 0; l < numLines; l++ {
 		wait.Add(1)
 		go func(l int) {
@@ -203,20 +204,27 @@ func analyzeImage(img *image.RGBA, ascii [][]ColorPoint) []string {
 				normR := ascii[l][o].r / (boxWidth * boxHeight)
 				normG := ascii[l][o].g / (boxWidth * boxHeight)
 				normB := ascii[l][o].b / (boxWidth * boxHeight)
-				switch *mode {
-				case "color":
-					buffer.WriteString(getColor(normR, normG, normB))
-					break
-				case "gray":
-					buffer.WriteString(getGray(normR, normG, normB))
-					break
-				}
 				a := artifacts.FindClosest(normGS)
+				if a.Text != " " {
+						switch *mode {
+						case "color":
+							if lastNormRGB != normR+normG+normG {
+								buffer.WriteString(getColor(normR, normG, normB))
+							}
+							break
+						case "gray":
+							if lastNormRGB != normR+normG+normG {
+								buffer.WriteString(getGray(normR, normG, normB))
+							}
+							break
+						}
+				}
 				if *exact && a.NormGS != normGS {
 					buffer.WriteString(" ")
 				} else {
 					buffer.WriteString(a.Text)
 				}
+				lastNormRGB = normR + normG + normB
 			}
 			lines[l] = buffer.String()
 			wait.Done()
