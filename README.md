@@ -20,32 +20,30 @@ Example Usage:
 ./movart -file video.mp4 -alphabet "*\. " -fontfile courier_prime.ttf
 ```
 
-###Libraries used for this project:
+Libraries used for this project:
 
 _Reisen_
 
 This project would not have been possible without _reisen_, a simple library to extract video and audio 
 frames from media containers.
 
-https://github.com/zergon321/reisen
+* https://github.com/zergon321/reisen
 
-https://golangrepo.com/repo/zergon321-reisen-go-video
+* https://golangrepo.com/repo/zergon321-reisen-go-video
 
-### Other useful reading:
+Other useful reading:
 
-_Ebiten_
+_Ebiten 2D Game Engine_
 
-2D Game Engine
-
-https://github.com/hajimehoshi/ebiten
+* https://github.com/hajimehoshi/ebiten
 
 _Disintegration Imaging Library_
 
-https://github.com/disintegration/imaging
+* https://github.com/disintegration/imaging
 
 _OpenCV 4 Computer Vision Library_
 
-https://github.com/hybridgroup/gocv
+* https://github.com/hybridgroup/gocv
 
 
 
