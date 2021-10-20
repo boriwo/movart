@@ -41,12 +41,6 @@ https://github.com/disintegration/imaging
 
 ### Other useful reading:
 
-_Terminal App Libraries_
-
-https://github.com/rthornton128/goncurses
-
-https://github.com/nsf/termbox-go/
-
 _OpenCV 4 Computer Vision Library_
 
 https://github.com/hybridgroup/gocv
