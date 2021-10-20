@@ -157,7 +157,7 @@ func allocateAsciiArray() [][]ColorPoint{
 func analyzeImage(img *image.RGBA, ascii [][]ColorPoint, lines []string) []string {
 	lock.Lock()
 	defer lock.Unlock()
-	defer trackTime(time.Now(), "analyze_image", 0, *asciiHeight+2)
+	defer trackTime(time.Now(), "analyze_image", 5, *asciiHeight-4, lines)
 	numRows := *asciiWidth
 	numLines := *asciiHeight
 	boxWidth := (*img).Bounds().Dx() / numRows
@@ -234,27 +234,32 @@ func analyzeImage(img *image.RGBA, ascii [][]ColorPoint, lines []string) []strin
 }
 
 func printASCII(w io.Writer, lines []string) {
-	defer trackTime(time.Now(), "print_ascii", 0, *asciiHeight+1)
+	now := time.Now()
 	// ansi escape codes
 	//fmt.Print("\033[2J") // clear screen
 	fmt.Printf("\033[%d;%dH", 0, 0) // set cursor position
 	fmt.Print("\033[2~")            // insert mode
-	for _, line := range lines {
-		fmt.Fprintf(w, "%s\n", line)
+	for idx, _ := range lines {
+		if idx == *asciiHeight-3 {
+			trackTime(now, "print_ascii", 5, *asciiHeight-3, lines)
+		}
+		fmt.Fprintf(w, "%s\n", lines[idx])
 	}
 	fmt.Fprint(w, resetTermColor)
 }
 
 func print(w io.Writer, lines []string) {
+	if player.GetFrameIdx() % *showNthFrame == 0 {
 		printASCII(w, lines)
+	}
 }
 
-func trackTime(start time.Time, name string, x, y int) {
-	elapsed := time.Since(start)
+func trackTime(start time.Time, name string, x, y int, lines []string) {
 	if *debug {
-		//fmt.Printf("\033[%d;%dH", x, y) // set cursor position
-		log.Printf("event=%s duration=%s frameBufferDepth=%d sampleBufferDepth=%d                                                        ",
-			name, elapsed, player.GetFrameBufferDepth(), player.GetSampleBufferDepth())
+		elapsed := time.Since(start)
+		str := fmt.Sprintf("event=%s duration=%s frame=%d frameBufferDepth=%d sampleBufferDepth=%d                                                        ",
+			name, elapsed, player.GetFrameIdx(), player.GetFrameBufferDepth(), player.GetSampleBufferDepth())
+		lines[y] = lines[y][0:x-1] + str + lines[y][x+len(str):]
 	}
 }
 

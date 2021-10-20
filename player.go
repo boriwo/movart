@@ -35,6 +35,10 @@ func (player *Player) GetSampleBufferDepth() int {
 	return len(player.sampleBuffer)
 }
 
+func (player *Player) GetFrameIdx() int {
+	return player.videoTotalFramesPlayed
+}
+
 func (player *Player) Render() error {
 	player.deltaTime = time.Since(player.last).Seconds()
 	player.last = time.Now()
