@@ -150,6 +150,10 @@ func readVideoAndAudio(media *reisen.Media, videoStream *reisen.VideoStream, aud
 	errs := make(chan error)
 	go func() {
 		for {
+			if pause {
+				time.Sleep(100*time.Millisecond)
+				continue
+			}
 			packet, gotPacket, err := media.ReadPacket()
 			if err != nil {
 				go func(err error) {

@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/faiface/beep"
 	"sync"
-	"time"
 )
 
 const (
@@ -34,6 +33,7 @@ var (
 	lines []string
 	lock sync.RWMutex
 	player *Player
+	pause = false
 )
 
 func main() {
@@ -44,7 +44,7 @@ func main() {
 	handleError(err)
 	for {
 		player.Render()
-		time.Sleep(2*time.Millisecond)
+		//time.Sleep(2*time.Millisecond)
 	}
 }
 
@@ -53,3 +53,5 @@ func handleError(err error) {
 		panic(err)
 	}
 }
+
+
