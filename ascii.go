@@ -154,10 +154,10 @@ func allocateAsciiArray() [][]ColorPoint{
 	return ascii
 }
 
-func analyzeImage(img *image.RGBA, ascii [][]ColorPoint) []string {
+func analyzeImage(img *image.RGBA, ascii [][]ColorPoint, lines []string) []string {
 	lock.Lock()
 	defer lock.Unlock()
-	defer trackTime(time.Now(), "analyze_image")
+	defer trackTime(time.Now(), "analyze_image", 0, *asciiHeight+2)
 	numRows := *asciiWidth
 	numLines := *asciiHeight
 	boxWidth := (*img).Bounds().Dx() / numRows
@@ -193,7 +193,6 @@ func analyzeImage(img *image.RGBA, ascii [][]ColorPoint) []string {
 		}(l)
 	}
 	wait.Wait()
-	lines := make([]string, numLines)
 	lastNormRGB := 0
 	for l := 0; l < numLines; l++ {
 		wait.Add(1)
@@ -235,7 +234,11 @@ func analyzeImage(img *image.RGBA, ascii [][]ColorPoint) []string {
 }
 
 func printASCII(w io.Writer, lines []string) {
-	defer trackTime(time.Now(), "print_ascii")
+	defer trackTime(time.Now(), "print_ascii", 0, *asciiHeight+1)
+	// ansi escape codes
+	//fmt.Print("\033[2J") // clear screen
+	fmt.Printf("\033[%d;%dH", 0, 0) // set cursor position
+	fmt.Print("\033[2~")            // insert mode
 	for _, line := range lines {
 		fmt.Fprintf(w, "%s\n", line)
 	}
@@ -246,10 +249,12 @@ func print(w io.Writer, lines []string) {
 		printASCII(w, lines)
 }
 
-func trackTime(start time.Time, name string) {
+func trackTime(start time.Time, name string, x, y int) {
 	elapsed := time.Since(start)
 	if *debug {
-		log.Printf("event=%s duration=%s", name, elapsed)
+		//fmt.Printf("\033[%d;%dH", x, y) // set cursor position
+		log.Printf("event=%s duration=%s frameBufferDepth=%d sampleBufferDepth=%d                                                        ",
+			name, elapsed, player.GetFrameBufferDepth(), player.GetSampleBufferDepth())
 	}
 }
 
@@ -289,7 +294,6 @@ func getRGBA(str string, font *truetype.Font) *image.RGBA {
 }
 
 func analyzeFont(ttfFile string) SortedGS {
-	defer trackTime(time.Now(), "analyze_font")
 	f, err := ioutil.ReadFile(ttfFile)
 	if err != nil {
 		log.Fatal(err)
@@ -335,6 +339,8 @@ func loadCharacterMap() SortedGS {
 }
 
 func initAscii() {
+	ascii = allocateAsciiArray()
+	lines = make([]string, *asciiHeight)
 	if *fontfile != "" {
 		artifacts = analyzeFont(*fontfile)
 	} else {

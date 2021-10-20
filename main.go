@@ -19,7 +19,7 @@ var (
 	sampleRate                        = 44100
 	width                             = 1280
 	height                            = 720
-	playAudio = flag.Bool("playAudio", false, "play audio stream")
+	playAudio = flag.Bool("audio", false, "play audio stream")
 	filename = flag.String("file", "demo.mp4", "media file name")
 	asciiWidth    = flag.Int("width", 250, "width in characters")
 	asciiHeight   = flag.Int("height", 80, "height in characters")
@@ -29,14 +29,16 @@ var (
 	alphabet = flag.String("alphabet", defaultAlphabet, "alphabet to use for art, if not set all printable ascii characters will be used")
 	debug    = flag.Bool("debug", false, "if set to true some performance data will be printed")
 	negative = flag.Bool("negative", true, "set to true if white text on black background, otherwise false")
-	ascii = allocateAsciiArray()
+	ascii [][]ColorPoint
+	lines []string
 	lock sync.RWMutex
+	player *Player
 )
 
 func main() {
 	flag.Parse()
 	initAscii()
-	player := &Player{}
+	player = &Player{}
 	err := player.Start(*filename)
 	handleError(err)
 	for {

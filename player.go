@@ -24,6 +24,15 @@ type Player struct {
 	perSecond              <-chan time.Time
 	last                   time.Time
 	deltaTime              float64
+	sampleBuffer <-chan [2]float64
+}
+
+func (player *Player) GetFrameBufferDepth() int {
+	return len(player.frameBuffer)
+}
+
+func (player *Player) GetSampleBufferDepth() int {
+	return len(player.sampleBuffer)
 }
 
 func (player *Player) Render() error {
@@ -41,11 +50,7 @@ func (player *Player) Render() error {
 		frame, ok := <-player.frameBuffer
 		if ok {
 			// asciify image
-			// ansi escape codes
-			//fmt.Print("\033[2J") // clear screen
-			fmt.Printf("\033[%d;%dH", 0, 0) // set cursor position
-			fmt.Print("\033[2~")            // insert mode
-			asciiLines := analyzeImage(frame, ascii)
+			asciiLines := analyzeImage(frame, ascii, lines)
 			print(os.Stdout, asciiLines)
 			player.videoTotalFramesPlayed++
 			player.videoPlaybackFPS++
@@ -114,14 +119,13 @@ func (player *Player) Start(fname string) error {
 		}
 	}
 	// start decoding streams
-	var sampleSource <-chan [2]float64
-	player.frameBuffer, sampleSource, player.errs, err = readVideoAndAudio(media, videoStream, audioStream)
+	player.frameBuffer, player.sampleBuffer, player.errs, err = readVideoAndAudio(media, videoStream, audioStream)
 	if err != nil {
 		return err
 	}
 	// start playing audio samples
 	if *playAudio {
-		speaker.Play(streamSamples(sampleSource))
+		speaker.Play(streamSamples(player.sampleBuffer))
 	}
 	// setup metrics
 	player.last = time.Now()
