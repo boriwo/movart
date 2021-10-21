@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"github.com/faiface/beep"
-	"sync"
 )
 
 const (
@@ -12,12 +11,13 @@ const (
 	bitDepth                          = 8
 	sampleBufferSize                  = 32 * channelCount * bitDepth * 1024
 	SpeakerSampleRate beep.SampleRate = 44100
+	defaultSampleRate              = 44100
+	defaultWidth                    = 1280
+	defaultHeight                        = 720
+
 )
 
 var (
-	sampleRate                        = 44100
-	width                             = 1280
-	height                            = 720
 	playAudio = flag.Bool("audio", false, "play audio stream")
 	filename = flag.String("file", "demo.mp4", "media file name")
 	asciiWidth    = flag.Int("width", 250, "width in characters")
@@ -29,7 +29,6 @@ var (
 	debug    = flag.Bool("debug", false, "if set to true some performance data will be printed")
 	negative = flag.Bool("negative", true, "set to true if white text on black background, otherwise false")
 	showNthFrame = flag.Int("snf", 2, "only show every nth frame, default is 2, meaning only show every second frame to ensure frame buffer doesn't back up")
-	lock sync.RWMutex
 	player *Player
 	ascii *Ascii
 	pause = false
@@ -38,7 +37,7 @@ var (
 func main() {
 	flag.Parse()
 	ascii = NewAscii(*alphabet, *mode, *asciiHeight, *asciiWidth, *exact, *negative, *debug)
-	player = &Player{}
+	player = NewPlayer(defaultWidth, defaultHeight, defaultSampleRate)
 	err := player.Start(*filename)
 	handleError(err)
 	for {

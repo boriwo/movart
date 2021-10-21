@@ -53,6 +53,7 @@ type (
 		r, g, b, sum int
 	}
 	Ascii struct {
+		sync.RWMutex
 		artifacts SortedGS
 		points [][]ColorPoint
 		lines []string
@@ -161,8 +162,8 @@ func (ascii *Ascii)  allocateAsciiArray() {
 }
 
 func (ascii *Ascii) analyzeImage(img *image.RGBA) {
-	lock.Lock()
-	defer lock.Unlock()
+	ascii.Lock()
+	defer ascii.Unlock()
 	defer ascii.trackTime(time.Now(), "analyze_image", 5, ascii.height-4)
 	numRows := ascii.width
 	numLines := ascii.height

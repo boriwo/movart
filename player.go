@@ -25,6 +25,17 @@ type Player struct {
 	last                   time.Time
 	deltaTime              float64
 	sampleBuffer <-chan [2]float64
+	sampleRate int          //              = 44100
+	width         int     //               = 1280
+	height           int//                 = 720
+}
+
+func NewPlayer(width, height, sampleRate int) *Player {
+	player := new(Player)
+	player.width = width
+	player.height = height
+	player.sampleRate = sampleRate
+	return player
 }
 
 func (player *Player) GetFrameBufferDepth() int {
@@ -77,7 +88,7 @@ func (player *Player) Render() error {
 }
 
 func (player *Player) Layout(a, b int) (int, int) {
-	return width, height
+	return player.width, player.height
 }
 
 func (player *Player) Start(fname string) error {
@@ -109,8 +120,8 @@ func (player *Player) Start(fname string) error {
 	if err != nil {
 		return err
 	}
-	width = videoStream.Width()
-	height = videoStream.Height()
+	player.width = videoStream.Width()
+	player.height = videoStream.Height()
 	var audioStream *reisen.AudioStream
 	if *playAudio {
 		audioStream = media.AudioStreams()[0]
@@ -119,8 +130,8 @@ func (player *Player) Start(fname string) error {
 		if err != nil {
 			return err
 		}
-		sampleRate = audioStream.SampleRate()
-		err := speaker.Init(beep.SampleRate(sampleRate), SpeakerSampleRate.N(time.Second/10))
+		player.sampleRate = audioStream.SampleRate()
+		err := speaker.Init(beep.SampleRate(player.sampleRate), SpeakerSampleRate.N(time.Second/10))
 		if err != nil {
 			return err
 		}
