@@ -309,7 +309,7 @@ func (ascii *Ascii) analyzeFont(ttfFile string) {
 	}
 	ascii.artifacts.Normalize()
 	sort.Sort(ascii.artifacts)
-	ascii.artifacts.removeDuplicates()
+	ascii.artifacts = ascii.artifacts.removeDuplicates()
 	//saveCharacterMap(a)
 }
 
