@@ -56,7 +56,12 @@ type (
 		artifacts SortedGS
 		points [][]ColorPoint
 		lines []string
+		alphabet string
 		height, width int
+		mode string
+		exact bool
+		negative bool
+		debug bool
 	}
 )
 
@@ -206,7 +211,7 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 				normB := ascii.points[l][o].b / (boxWidth * boxHeight)
 				a := ascii.artifacts.FindClosest(normGS)
 				if a.Text != " " {
-						switch *mode {
+						switch ascii.mode {
 						case "color":
 							if lastNormRGB != normR+normG+normG {
 								buffer.WriteString(getColor(normR, normG, normB))
@@ -219,7 +224,7 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 							break
 						}
 				}
-				if *exact && a.NormGS != normGS {
+				if ascii.exact && a.NormGS != normGS {
 					buffer.WriteString(" ")
 				} else {
 					buffer.WriteString(a.Text)
@@ -249,7 +254,7 @@ func (ascii *Ascii) print(w io.Writer) {
 }
 
 func  (ascii *Ascii) trackTime(start time.Time, name string, x, y int) {
-	if *debug {
+	if ascii.debug {
 		elapsed := time.Since(start)
 		str := fmt.Sprintf("event=%s duration=%s frame=%d frameBufferDepth=%d sampleBufferDepth=%d                                                        ",
 			name, elapsed, player.GetFrameIdx(), player.GetFrameBufferDepth(), player.GetSampleBufferDepth())
@@ -266,7 +271,7 @@ func getNumBlackPixels(rgba *image.RGBA) int {
 			s += (mono(r) + mono(g) + mono(b))
 		}
 	}
-	if *negative {
+	if ascii.negative {
 		return 3*(rgba.Bounds().Dy()*rgba.Bounds().Dx()) - s
 	} else {
 		return s
@@ -301,8 +306,8 @@ func (ascii *Ascii) analyzeFont(ttfFile string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ascii.artifacts = make(SortedGS, len(*alphabet))
-	for i, char := range *alphabet {
+	ascii.artifacts = make(SortedGS, len(ascii.alphabet))
+	for i, char := range ascii.alphabet {
 		rgba := getRGBA(string(char), font)
 		nbp := getNumBlackPixels(rgba)
 		ascii.artifacts[i] = &Artifact{string(char), nbp, nbp}
@@ -336,11 +341,16 @@ func (ascii *Ascii) loadCharacterMap() {
 	ascii.artifacts = a
 }
 
-func NewAscii(height, width int) *Ascii {
+func NewAscii(alphabet string, mode string, height, width int, exact, negative, debug bool) *Ascii {
 	fmt.Print("\033[2J") // clear screen
 	ascii := new(Ascii)
+	ascii.alphabet = alphabet
 	ascii.height = height
 	ascii.width = width
+	ascii.mode = mode
+	ascii.exact = exact
+	ascii.negative = negative
+	ascii.debug = debug
 	ascii.allocateAsciiArray()
 	ascii.lines = make([]string, ascii.height)
 	if *fontfile != "" {

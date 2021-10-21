@@ -37,7 +37,7 @@ var (
 
 func main() {
 	flag.Parse()
-	ascii = NewAscii(*asciiHeight, *asciiWidth)
+	ascii = NewAscii(*alphabet, *mode, *asciiHeight, *asciiWidth, *exact, *negative, *debug)
 	player = &Player{}
 	err := player.Start(*filename)
 	handleError(err)
