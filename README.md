@@ -20,6 +20,8 @@ Example Usage:
 ./movart -file video.mp4 -alphabet "*\. " -fontfile courier_prime.ttf
 ```
 
+![test.gif](test.gif)
+
 Libraries used for this project:
 
 _Reisen_
