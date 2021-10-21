@@ -29,16 +29,15 @@ var (
 	debug    = flag.Bool("debug", false, "if set to true some performance data will be printed")
 	negative = flag.Bool("negative", true, "set to true if white text on black background, otherwise false")
 	showNthFrame = flag.Int("snf", 2, "only show every nth frame, default is 2, meaning only show every second frame to ensure frame buffer doesn't back up")
-	ascii [][]ColorPoint
-	lines []string
 	lock sync.RWMutex
 	player *Player
+	ascii *Ascii
 	pause = false
 )
 
 func main() {
 	flag.Parse()
-	initAscii()
+	ascii = NewAscii(*asciiHeight, *asciiWidth)
 	player = &Player{}
 	err := player.Start(*filename)
 	handleError(err)

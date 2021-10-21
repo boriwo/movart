@@ -43,10 +43,6 @@ const (
 var (
 )
 
-var (
-	artifacts SortedGS
-)
-
 type (
 	Artifact struct {
 		Text          string
@@ -55,6 +51,12 @@ type (
 	SortedGS   []*Artifact
 	ColorPoint struct {
 		r, g, b, sum int
+	}
+	Ascii struct {
+		artifacts SortedGS
+		points [][]ColorPoint
+		lines []string
+		height, width int
 	}
 )
 
@@ -107,10 +109,10 @@ func (a SortedGS) Len() int           { return len(a) }
 func (a SortedGS) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a SortedGS) Less(i, j int) bool { return a[i].AbsGS < a[j].AbsGS }
 
-func removeDuplicates(aList SortedGS) SortedGS {
+func (artifacts SortedGS) removeDuplicates() SortedGS {
 	result := SortedGS{}
-	for i, a := range aList {
-		if i > 0 && a.NormGS == aList[i-1].NormGS {
+	for i, a := range artifacts {
+		if i > 0 && a.NormGS == artifacts[i-1].NormGS {
 			continue
 		}
 		result = append(result, a)
@@ -144,22 +146,21 @@ func getGray(r, g, b int) string {
 		return getXtermGray(r, g, b)
 }
 
-func allocateAsciiArray() [][]ColorPoint{
-	numRows := *asciiWidth
-	numLines := *asciiHeight
-	ascii := make([][]ColorPoint, numLines)
+func (ascii *Ascii)  allocateAsciiArray() {
+	numRows := ascii.width
+	numLines := ascii.height
+	ascii.points = make([][]ColorPoint, numLines)
 	for l := 0; l < numLines; l++ {
-		ascii[l] = make([]ColorPoint, numRows)
+		ascii.points[l] = make([]ColorPoint, numRows)
 	}
-	return ascii
 }
 
-func analyzeImage(img *image.RGBA, ascii [][]ColorPoint, lines []string) []string {
+func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 	lock.Lock()
 	defer lock.Unlock()
-	defer trackTime(time.Now(), "analyze_image", 5, *asciiHeight-4, lines)
-	numRows := *asciiWidth
-	numLines := *asciiHeight
+	defer ascii.trackTime(time.Now(), "analyze_image", 5, ascii.height-4)
+	numRows := ascii.width
+	numLines := ascii.height
 	boxWidth := (*img).Bounds().Dx() / numRows
 	boxHeight := (*img).Bounds().Dy() / numLines
 	min := 0
@@ -169,24 +170,24 @@ func analyzeImage(img *image.RGBA, ascii [][]ColorPoint, lines []string) []strin
 		wait.Add(1)
 		go func(l int) {
 			for o := 0; o < numRows; o++ {
-				ascii[l][o].r = 0
-				ascii[l][o].g = 0
-				ascii[l][o].b = 0
-				ascii[l][o].sum = 0
+				ascii.points[l][o].r = 0
+				ascii.points[l][o].g = 0
+				ascii.points[l][o].b = 0
+				ascii.points[l][o].sum = 0
 				for y := 0; y < boxHeight; y++ {
 					for x := 0; x < boxWidth; x++ {
 						col := (*img).At(o*boxWidth+x, l*boxHeight+y)
 						r, g, b, _ := col.RGBA()
-						ascii[l][o].r += int(r)
-						ascii[l][o].g += int(g)
-						ascii[l][o].b += int(b)
-						ascii[l][o].sum += (ascii[l][o].r + ascii[l][o].g + ascii[l][o].b)
+						ascii.points[l][o].r += int(r)
+						ascii.points[l][o].g += int(g)
+						ascii.points[l][o].b += int(b)
+						ascii.points[l][o].sum += (ascii.points[l][o].r + ascii.points[l][o].g + ascii.points[l][o].b)
 					}
 				}
-				if ascii[l][o].sum < min {
-					min = ascii[l][o].sum
-				} else if ascii[l][o].sum > max {
-					max = ascii[l][o].sum
+				if ascii.points[l][o].sum < min {
+					min = ascii.points[l][o].sum
+				} else if ascii.points[l][o].sum > max {
+					max = ascii.points[l][o].sum
 				}
 			}
 			wait.Done()
@@ -199,11 +200,11 @@ func analyzeImage(img *image.RGBA, ascii [][]ColorPoint, lines []string) []strin
 		go func(l int) {
 			var buffer bytes.Buffer
 			for o := 0; o < numRows; o++ {
-				normGS := int(256 * (ascii[l][o].sum - min) / (max - min))
-				normR := ascii[l][o].r / (boxWidth * boxHeight)
-				normG := ascii[l][o].g / (boxWidth * boxHeight)
-				normB := ascii[l][o].b / (boxWidth * boxHeight)
-				a := artifacts.FindClosest(normGS)
+				normGS := int(256 * (ascii.points[l][o].sum - min) / (max - min))
+				normR := ascii.points[l][o].r / (boxWidth * boxHeight)
+				normG := ascii.points[l][o].g / (boxWidth * boxHeight)
+				normB := ascii.points[l][o].b / (boxWidth * boxHeight)
+				a := ascii.artifacts.FindClosest(normGS)
 				if a.Text != " " {
 						switch *mode {
 						case "color":
@@ -225,41 +226,34 @@ func analyzeImage(img *image.RGBA, ascii [][]ColorPoint, lines []string) []strin
 				}
 				lastNormRGB = normR + normG + normB
 			}
-			lines[l] = buffer.String()
+			ascii.lines[l] = buffer.String()
 			wait.Done()
 		}(l)
 	}
 	wait.Wait()
-	return lines
 }
 
-func printASCII(w io.Writer, lines []string) {
+func (ascii *Ascii) print(w io.Writer) {
 	now := time.Now()
 	// ansi escape codes
 	//fmt.Print("\033[2J") // clear screen
 	fmt.Printf("\033[%d;%dH", 0, 0) // set cursor position
 	fmt.Print("\033[2~")            // insert mode
-	for idx, _ := range lines {
-		if idx == *asciiHeight-3 {
-			trackTime(now, "print_ascii", 5, *asciiHeight-3, lines)
+	for idx, _ := range ascii.lines {
+		if idx == ascii.height-3 {
+			ascii.trackTime(now, "print_ascii", 5, ascii.height-3)
 		}
-		fmt.Fprintf(w, "%s\n", lines[idx])
+		fmt.Fprintf(w, "%s\n", ascii.lines[idx])
 	}
 	fmt.Fprint(w, resetTermColor)
 }
 
-func print(w io.Writer, lines []string) {
-	if player.GetFrameIdx() % *showNthFrame == 0 {
-		printASCII(w, lines)
-	}
-}
-
-func trackTime(start time.Time, name string, x, y int, lines []string) {
+func  (ascii *Ascii) trackTime(start time.Time, name string, x, y int) {
 	if *debug {
 		elapsed := time.Since(start)
 		str := fmt.Sprintf("event=%s duration=%s frame=%d frameBufferDepth=%d sampleBufferDepth=%d                                                        ",
 			name, elapsed, player.GetFrameIdx(), player.GetFrameBufferDepth(), player.GetSampleBufferDepth())
-		lines[y] = lines[y][0:x-1] + str + lines[y][x+len(str):]
+		ascii.lines[y] = ascii.lines[y][0:x-1] + str + ascii.lines[y][x+len(str):]
 	}
 }
 
@@ -298,7 +292,7 @@ func getRGBA(str string, font *truetype.Font) *image.RGBA {
 	return rgba
 }
 
-func analyzeFont(ttfFile string) SortedGS {
+func (ascii *Ascii) analyzeFont(ttfFile string) {
 	f, err := ioutil.ReadFile(ttfFile)
 	if err != nil {
 		log.Fatal(err)
@@ -307,21 +301,20 @@ func analyzeFont(ttfFile string) SortedGS {
 	if err != nil {
 		log.Fatal(err)
 	}
-	a := make(SortedGS, len(*alphabet))
+	ascii.artifacts = make(SortedGS, len(*alphabet))
 	for i, char := range *alphabet {
 		rgba := getRGBA(string(char), font)
 		nbp := getNumBlackPixels(rgba)
-		a[i] = &Artifact{string(char), nbp, nbp}
+		ascii.artifacts[i] = &Artifact{string(char), nbp, nbp}
 	}
-	a.Normalize()
-	sort.Sort(a)
-	a = removeDuplicates(a)
+	ascii.artifacts.Normalize()
+	sort.Sort(ascii.artifacts)
+	ascii.artifacts.removeDuplicates()
 	//saveCharacterMap(a)
-	return a
 }
 
-func saveCharacterMap(a SortedGS) {
-	buf, err := json.Marshal(a)
+func (ascii *Ascii) saveCharacterMap() {
+	buf, err := json.Marshal(ascii.artifacts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -331,7 +324,7 @@ func saveCharacterMap(a SortedGS) {
 	}
 }
 
-func loadCharacterMap() SortedGS {
+func (ascii *Ascii) loadCharacterMap() {
 	buf, err := ioutil.ReadFile(mappingFile)
 	if err != nil {
 		log.Fatal(err)
@@ -340,15 +333,19 @@ func loadCharacterMap() SortedGS {
 	if err := json.Unmarshal(buf, &a); err != nil {
 		log.Fatal(err)
 	}
-	return a
+	ascii.artifacts = a
 }
 
-func initAscii() {
-	ascii = allocateAsciiArray()
-	lines = make([]string, *asciiHeight)
+func NewAscii(height, width int) *Ascii {
+	ascii := new(Ascii)
+	ascii.height = height
+	ascii.width = width
+	ascii.allocateAsciiArray()
+	ascii.lines = make([]string, ascii.height)
 	if *fontfile != "" {
-		artifacts = analyzeFont(*fontfile)
+		ascii.analyzeFont(*fontfile)
 	} else {
-		artifacts = loadCharacterMap()
+		ascii.loadCharacterMap()
 	}
+	return ascii
 }

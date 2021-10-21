@@ -54,8 +54,10 @@ func (player *Player) Render() error {
 		frame, ok := <-player.frameBuffer
 		if ok {
 			// asciify image
-			asciiLines := analyzeImage(frame, ascii, lines)
-			print(os.Stdout, asciiLines)
+			if player.GetFrameIdx() % *showNthFrame == 0 {
+				ascii.analyzeImage(frame)
+				ascii.print(os.Stdout)
+			}
 			player.videoTotalFramesPlayed++
 			player.videoPlaybackFPS++
 		}
