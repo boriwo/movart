@@ -337,6 +337,7 @@ func (ascii *Ascii) loadCharacterMap() {
 }
 
 func NewAscii(height, width int) *Ascii {
+	fmt.Print("\033[2J") // clear screen
 	ascii := new(Ascii)
 	ascii.height = height
 	ascii.width = width
