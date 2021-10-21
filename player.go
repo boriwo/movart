@@ -109,14 +109,15 @@ func (player *Player) Start(fname string) error {
 	}
 	width = videoStream.Width()
 	height = videoStream.Height()
-	audioStream := media.AudioStreams()[0]
-	// init speaker
-	err = audioStream.Open()
-	if err != nil {
-		return err
-	}
-	sampleRate = audioStream.SampleRate()
+	var audioStream *reisen.AudioStream
 	if *playAudio {
+		audioStream = media.AudioStreams()[0]
+		// init speaker
+		err = audioStream.Open()
+		if err != nil {
+			return err
+		}
+		sampleRate = audioStream.SampleRate()
 		err := speaker.Init(beep.SampleRate(sampleRate), SpeakerSampleRate.N(time.Second/10))
 		if err != nil {
 			return err
@@ -232,7 +233,9 @@ func readVideoAndAudio(media *reisen.Media, videoStream *reisen.VideoStream, aud
 			}
 		}
 		videoStream.Close()
-		audioStream.Close()
+		if audioStream != nil {
+			audioStream.Close()
+		}
 		media.CloseDecode()
 		close(frameBuffer)
 		close(sampleBuffer)
