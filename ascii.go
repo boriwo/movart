@@ -152,6 +152,13 @@ func getGray(r, g, b int) string {
 		return getXtermGray(r, g, b)
 }
 
+func abs(i int) int {
+	if i < 0 {
+		return -i
+	}
+	return i
+}
+
 func (ascii *Ascii)  allocateAsciiArray() {
 	numRows := ascii.width
 	numLines := ascii.height
@@ -212,12 +219,14 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 				if a.Text != " " {
 						switch ascii.mode {
 						case "color":
-							if lastNormRGB != normR+normG+normG {
+							// only change color if change is substantial
+							if abs(lastNormRGB-normR+normG+normG) > 5 {
 								buffer.WriteString(getColor(normR, normG, normB))
 							}
 							break
 						case "gray":
-							if lastNormRGB != normR+normG+normG {
+							// only change color if change is substantial
+							if abs(lastNormRGB-normR+normG+normG) > 5 {
 								buffer.WriteString(getGray(normR, normG, normB))
 							}
 							break
