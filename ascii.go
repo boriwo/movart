@@ -187,9 +187,9 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 						ascii.points[l][o].r += int(r)
 						ascii.points[l][o].g += int(g)
 						ascii.points[l][o].b += int(b)
-						ascii.points[l][o].sum += (ascii.points[l][o].r + ascii.points[l][o].g + ascii.points[l][o].b)
 					}
 				}
+				ascii.points[l][o].sum = ascii.points[l][o].r + ascii.points[l][o].g + ascii.points[l][o].b
 				if ascii.points[l][o].sum < min {
 					min = ascii.points[l][o].sum
 				} else if ascii.points[l][o].sum > max {
