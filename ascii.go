@@ -169,8 +169,8 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 	numLines := ascii.height
 	boxWidth := (*img).Bounds().Dx() / numRows
 	boxHeight := (*img).Bounds().Dy() / numLines
-	min := 0
-	max := maxColor * boxHeight * boxWidth
+	max := 0
+	min := maxColor * boxHeight * boxWidth
 	var wait sync.WaitGroup
 	for l := 0; l < numLines; l++ {
 		wait.Add(1)
