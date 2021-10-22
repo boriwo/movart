@@ -17,7 +17,7 @@ type Player struct {
 	perSecond              <- chan time.Time
 	errs                   chan error
 	frameBuffer            chan *image.RGBA
-	fps                    int
+	fpscnt                    int
 	videoTotalFramesPlayed int
 	videoPlaybackFPS       int
 	last                   time.Time
@@ -27,10 +27,11 @@ type Player struct {
 	width         		int
 	height           	int
 	pause 				bool
-	snf 				int
+	snf 				int // optionally only show every nth frame
+	fps 				int // manually override frame rate
 }
 
-func NewPlayer(width, height, sampleRate, snf int) *Player {
+func NewPlayer(width, height, sampleRate, snf int, fps int) *Player {
 	player := new(Player)
 	player.width = width
 	player.height = height
@@ -39,6 +40,7 @@ func NewPlayer(width, height, sampleRate, snf int) *Player {
 	player.sampleBuffer = make(chan [2]float64, sampleBufferSize)
 	player.errs = make(chan error)
 	player.snf = snf
+	player.fps = fps
 	return player
 }
 
@@ -52,6 +54,10 @@ func (player *Player) GetSampleBufferDepth() int {
 
 func (player *Player) GetFrameIdx() int {
 	return player.videoTotalFramesPlayed
+}
+
+func (player *Player) GetFPS() int {
+	return player.videoPlaybackFPS
 }
 
 func (player *Player) Render() error {
@@ -74,18 +80,15 @@ func (player *Player) Render() error {
 				ascii.print(os.Stdout)
 			}
 			player.videoTotalFramesPlayed++
-			player.videoPlaybackFPS++
+			player.fpscnt++
 		}
 	default:
 	}
-	// draw the video sprite
-	player.fps++
-	// Update metrics in the window title.
 	select {
 	case <-player.perSecond:
-		// set title, print stats
-		player.fps = 0
-		player.videoPlaybackFPS = 0
+		// metrics
+		player.videoPlaybackFPS = player.fpscnt
+		player.fpscnt = 0
 	default:
 	}
 	return nil
@@ -102,13 +105,18 @@ func (player *Player) Start(fname string) error {
 		return err
 	}
 	spf := float64(1.0)
-	var frameRateNum, freameRateDen int
-	for _, stream := range media.Streams() {
-		if stream.Type() == reisen.StreamVideo {
-			frameRateNum, freameRateDen = stream.FrameRate()
-			spf = 1.0/float64(frameRateNum/freameRateDen) // "seconds per frame"
+	var frameRateNum, frameRateDen int
+	if player.fps > 0 {
+		frameRateNum = player.fps
+		frameRateDen = 1
+	} else {
+		for _, stream := range media.Streams() {
+			if stream.Type() == reisen.StreamVideo {
+				frameRateNum, frameRateDen = stream.FrameRate()
+			}
 		}
 	}
+	spf = 1.0 / float64(frameRateNum/frameRateDen) // "seconds per frame"
 	frameDuration, err := time.ParseDuration(fmt.Sprintf("%fs", spf))
 	if err != nil {
 		return err
@@ -151,7 +159,7 @@ func (player *Player) Start(fname string) error {
 	}
 	// setup metrics
 	player.last = time.Now()
-	player.fps = 0
+	player.fpscnt = 0
 	player.videoTotalFramesPlayed = 0
 	player.videoPlaybackFPS = 0
 	player.ticker = time.Tick(frameDuration)

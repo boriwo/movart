@@ -29,6 +29,7 @@ var (
 	debug    = flag.Bool("debug", false, "if set to true some performance data will be printed")
 	negative = flag.Bool("negative", true, "set to true if white text on black background, otherwise false")
 	showNthFrame = flag.Int("snf", 2, "only show every nth frame, default is 2, meaning only show every second frame to ensure frame buffer doesn't back up")
+	fps = flag.Int("fps", 0, "optionally overwrite frame rate information in video stream")
 	player *Player
 	ascii *Ascii
 )
@@ -36,7 +37,7 @@ var (
 func main() {
 	flag.Parse()
 	ascii = NewAscii(*alphabet, *mode, *asciiHeight, *asciiWidth, *exact, *negative, *debug)
-	player = NewPlayer(defaultWidth, defaultHeight, defaultSampleRate, *showNthFrame)
+	player = NewPlayer(defaultWidth, defaultHeight, defaultSampleRate, *showNthFrame, *fps)
 	err := player.Start(*filename)
 	handleError(err)
 	for {

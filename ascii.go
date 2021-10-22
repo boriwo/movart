@@ -257,8 +257,8 @@ func (ascii *Ascii) print(w io.Writer) {
 func  (ascii *Ascii) trackTime(start time.Time, name string, x, y int) {
 	if ascii.debug {
 		elapsed := time.Since(start)
-		str := fmt.Sprintf("event=%s duration=%s frame=%d frameBufferDepth=%d sampleBufferDepth=%d                                                        ",
-			name, elapsed, player.GetFrameIdx(), player.GetFrameBufferDepth(), player.GetSampleBufferDepth())
+		str := fmt.Sprintf("event=%s duration=%s frame=%d fps=%d frameBufferDepth=%d sampleBufferDepth=%d                                                        ",
+			name, elapsed, player.GetFrameIdx(), player.GetFPS(), player.GetFrameBufferDepth(), player.GetSampleBufferDepth())
 		ascii.lines[y] = ascii.lines[y][0:x-1] + str + ascii.lines[y][x+len(str):]
 	}
 }
