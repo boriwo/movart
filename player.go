@@ -12,29 +12,33 @@ import (
 	"time"
 )
 
-// Player holds all the data
-// necessary for playing video.
 type Player struct {
-	ticker                 <-chan time.Time
-	errs                   <-chan error
-	frameBuffer            <-chan *image.RGBA
+	ticker                 <- chan time.Time
+	perSecond              <- chan time.Time
+	errs                   chan error
+	frameBuffer            chan *image.RGBA
 	fps                    int
 	videoTotalFramesPlayed int
 	videoPlaybackFPS       int
-	perSecond              <-chan time.Time
 	last                   time.Time
 	deltaTime              float64
-	sampleBuffer <-chan [2]float64
-	sampleRate int          //              = 44100
-	width         int     //               = 1280
-	height           int//                 = 720
+	sampleBuffer 		chan [2]float64
+	sampleRate 			int
+	width         		int
+	height           	int
+	pause 				bool
+	snf 				int
 }
 
-func NewPlayer(width, height, sampleRate int) *Player {
+func NewPlayer(width, height, sampleRate, snf int) *Player {
 	player := new(Player)
 	player.width = width
 	player.height = height
 	player.sampleRate = sampleRate
+	player.frameBuffer = make(chan *image.RGBA, frameBufferSize)
+	player.sampleBuffer = make(chan [2]float64, sampleBufferSize)
+	player.errs = make(chan error)
+	player.snf = snf
 	return player
 }
 
@@ -65,7 +69,7 @@ func (player *Player) Render() error {
 		frame, ok := <-player.frameBuffer
 		if ok {
 			// asciify image
-			if player.GetFrameIdx() % *showNthFrame == 0 {
+			if player.GetFrameIdx() % player.snf == 0 {
 				ascii.analyzeImage(frame)
 				ascii.print(os.Stdout)
 			}
@@ -137,13 +141,13 @@ func (player *Player) Start(fname string) error {
 		}
 	}
 	// start decoding streams
-	player.frameBuffer, player.sampleBuffer, player.errs, err = readVideoAndAudio(media, videoStream, audioStream)
+	player.readVideoAndAudio(media, videoStream, audioStream)
 	if err != nil {
 		return err
 	}
 	// start playing audio samples
 	if *playAudio {
-		speaker.Play(streamSamples(player.sampleBuffer))
+		speaker.Play(player.streamSamples(player.sampleBuffer))
 	}
 	// setup metrics
 	player.last = time.Now()
@@ -158,20 +162,17 @@ func (player *Player) Start(fname string) error {
 // readVideoAndAudio reads video and audio frames
 // from the opened media and sends the decoded
 // data to che channels to be played.
-func readVideoAndAudio(media *reisen.Media, videoStream *reisen.VideoStream, audioStream *reisen.AudioStream) (<-chan *image.RGBA, <-chan [2]float64, chan error, error) {
-	frameBuffer := make(chan *image.RGBA, frameBufferSize)
-	sampleBuffer := make(chan [2]float64, sampleBufferSize)
-	errs := make(chan error)
+func (player *Player) readVideoAndAudio(media *reisen.Media, videoStream *reisen.VideoStream, audioStream *reisen.AudioStream) {
 	go func() {
 		for {
-			if pause {
+			if player.pause {
 				time.Sleep(100*time.Millisecond)
 				continue
 			}
 			packet, gotPacket, err := media.ReadPacket()
 			if err != nil {
 				go func(err error) {
-					errs <- err
+					player.errs <- err
 				}(err)
 			}
 			if !gotPacket {
@@ -202,7 +203,7 @@ func readVideoAndAudio(media *reisen.Media, videoStream *reisen.VideoStream, aud
 				//flippedImageRGBA := image.NewRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
 				//draw.Draw(flippedImageRGBA, flippedImageRGBA.Bounds(), flippedImage, bounds.Min, draw.Src)
 				//frameBuffer <- flippedImageRGBA
-				frameBuffer <- videoFrame.Image()
+				player.frameBuffer <- videoFrame.Image()
 			case reisen.StreamAudio:
 				if !*playAudio {
 					continue
@@ -230,18 +231,18 @@ func readVideoAndAudio(media *reisen.Media, videoStream *reisen.VideoStream, aud
 					err = binary.Read(reader, binary.LittleEndian, &result)
 					if err != nil {
 						go func(err error) {
-							errs <- err
+							player.errs <- err
 						}(err)
 					}
 					sample[0] = result
 					err = binary.Read(reader, binary.LittleEndian, &result)
 					if err != nil {
 						go func(err error) {
-							errs <- err
+							player.errs <- err
 						}(err)
 					}
 					sample[1] = result
-					sampleBuffer <- sample
+					player.sampleBuffer <- sample
 				}
 			}
 		}
@@ -250,18 +251,17 @@ func readVideoAndAudio(media *reisen.Media, videoStream *reisen.VideoStream, aud
 			audioStream.Close()
 		}
 		media.CloseDecode()
-		close(frameBuffer)
-		close(sampleBuffer)
-		close(errs)
+		close(player.frameBuffer)
+		close(player.sampleBuffer)
+		close(player.errs)
 	}()
-	return frameBuffer, sampleBuffer, errs, nil
 }
 
 // streamSamples creates a new custom streamer for
 // playing audio samples provided by the source channel.
 // See https://github.com/faiface/beep/wiki/Making-own-streamers
 // for reference.
-func streamSamples(sampleSource <-chan [2]float64) beep.Streamer {
+func (player *Player) streamSamples(sampleSource <-chan [2]float64) beep.Streamer {
 	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
 		numRead := 0
 		for i := 0; i < len(samples); i++ {

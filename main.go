@@ -11,9 +11,9 @@ const (
 	bitDepth                          = 8
 	sampleBufferSize                  = 32 * channelCount * bitDepth * 1024
 	SpeakerSampleRate beep.SampleRate = 44100
-	defaultSampleRate              = 44100
-	defaultWidth                    = 1280
-	defaultHeight                        = 720
+	defaultSampleRate              	  = 44100
+	defaultWidth                      = 1280
+	defaultHeight                     = 720
 
 )
 
@@ -31,13 +31,12 @@ var (
 	showNthFrame = flag.Int("snf", 2, "only show every nth frame, default is 2, meaning only show every second frame to ensure frame buffer doesn't back up")
 	player *Player
 	ascii *Ascii
-	pause = false
 )
 
 func main() {
 	flag.Parse()
 	ascii = NewAscii(*alphabet, *mode, *asciiHeight, *asciiWidth, *exact, *negative, *debug)
-	player = NewPlayer(defaultWidth, defaultHeight, defaultSampleRate)
+	player = NewPlayer(defaultWidth, defaultHeight, defaultSampleRate, *showNthFrame)
 	err := player.Start(*filename)
 	handleError(err)
 	for {
