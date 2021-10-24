@@ -40,9 +40,6 @@ const (
 	defaultTtfFile  = "courier_prime.ttf"
 )
 
-var (
-)
-
 type (
 	Artifact struct {
 		Text          string
@@ -63,6 +60,7 @@ type (
 		exact bool
 		negative bool
 		debug bool
+		closest []*Artifact
 	}
 )
 
@@ -215,7 +213,7 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 				normR := ascii.points[l][o].r / (boxWidth * boxHeight)
 				normG := ascii.points[l][o].g / (boxWidth * boxHeight)
 				normB := ascii.points[l][o].b / (boxWidth * boxHeight)
-				a := ascii.artifacts.FindClosest(normGS)
+				a := ascii.closest[normGS]
 				if a.Text != " " {
 						switch ascii.mode {
 						case "color":
@@ -261,7 +259,7 @@ func (ascii *Ascii) print(w io.Writer) {
 	fmt.Fprint(w, resetTermColor)
 }
 
-func  (ascii *Ascii) trackTime(start time.Time, name string, x, y int) {
+func (ascii *Ascii) trackTime(start time.Time, name string, x, y int) {
 	if ascii.debug {
 		elapsed := time.Since(start)
 		str := fmt.Sprintf("event=%s duration=%s frame=%d fps=%d frameBufferDepth=%d sampleBufferDepth=%d                                                        ",
@@ -270,7 +268,7 @@ func  (ascii *Ascii) trackTime(start time.Time, name string, x, y int) {
 	}
 }
 
-func getNumBlackPixels(rgba *image.RGBA) int {
+func (ascii *Ascii) getNumBlackPixels(rgba *image.RGBA) int {
 	s := 0
 	for y := 0; y < rgba.Bounds().Dy(); y++ {
 		for x := 0; x < rgba.Bounds().Dx(); x++ {
@@ -317,7 +315,7 @@ func (ascii *Ascii) analyzeFont(ttfFile string) {
 	ascii.artifacts = make(SortedGS, len(ascii.alphabet))
 	for i, char := range ascii.alphabet {
 		rgba := getRGBA(string(char), font)
-		nbp := getNumBlackPixels(rgba)
+		nbp := ascii.getNumBlackPixels(rgba)
 		ascii.artifacts[i] = &Artifact{string(char), nbp, nbp}
 	}
 	ascii.artifacts.Normalize()
@@ -365,6 +363,10 @@ func NewAscii(alphabet string, mode string, height, width int, exact, negative, 
 		ascii.analyzeFont(*fontfile)
 	} else {
 		ascii.loadCharacterMap()
+	}
+	ascii.closest = make([]*Artifact, 257)
+	for i, _ := range ascii.closest {
+		ascii.closest[i] = ascii.artifacts.FindClosest(i)
 	}
 	return ascii
 }
