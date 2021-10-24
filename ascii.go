@@ -218,13 +218,13 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 						switch ascii.mode {
 						case "color":
 							// only change color if change is substantial
-							if abs(lastNormRGB-normR+normG+normG) > 5 {
+							if abs(lastNormRGB-(normR+normG+normG)) > 5 {
 								buffer.WriteString(getColor(normR, normG, normB))
 							}
 							break
 						case "gray":
 							// only change color if change is substantial
-							if abs(lastNormRGB-normR+normG+normG) > 5 {
+							if abs(lastNormRGB-(normR+normG+normG)) > 5 {
 								buffer.WriteString(getGray(normR, normG, normB))
 							}
 							break
