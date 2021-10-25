@@ -174,6 +174,7 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 	boxHeight := (*img).Bounds().Dy() / ascii.height
 	max := 0
 	min := maxColor * boxHeight * boxWidth
+	var lck sync.Mutex
 	var wait sync.WaitGroup
 	for l := 0; l < ascii.height; l++ {
 		wait.Add(1)
@@ -194,9 +195,13 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 				}
 				ascii.points[l][o].sum = ascii.points[l][o].r + ascii.points[l][o].g + ascii.points[l][o].b
 				if ascii.points[l][o].sum < min {
+					lck.Lock()
 					min = ascii.points[l][o].sum
+					lck.Unlock()
 				} else if ascii.points[l][o].sum > max {
+					lck.Lock()
 					max = ascii.points[l][o].sum
+					lck.Unlock()
 				}
 			}
 			wait.Done()
@@ -209,7 +214,10 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 		go func(l int) {
 			var buffer bytes.Buffer
 			for o := 0; o < ascii.width; o++ {
-				normGS := int(256 * (ascii.points[l][o].sum - min) / (max - min))
+				normGS := 0
+				if max > min {
+					normGS = int(256 * (ascii.points[l][o].sum - min) / (max - min))
+				}
 				normR := ascii.points[l][o].r / (boxWidth * boxHeight)
 				normG := ascii.points[l][o].g / (boxWidth * boxHeight)
 				normB := ascii.points[l][o].b / (boxWidth * boxHeight)
