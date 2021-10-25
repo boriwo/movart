@@ -23,7 +23,6 @@ var (
 	asciiWidth    = flag.Int("width", 250, "width in characters")
 	asciiHeight   = flag.Int("height", 80, "height in characters")
 	fontfile = flag.String("fontfile", "", "filename of a ttf font, preferably a monospaced one such as Courier")
-	exact    = flag.Bool("exact", false, "require exact match for shade")
 	mode     = flag.String("mode", "mono", "mode can be mono, gray or color, default is mono")
 	alphabet = flag.String("alphabet", defaultAlphabet, "alphabet to use for art, if not set all printable ascii characters will be used")
 	debug    = flag.Bool("debug", false, "if set to true some performance data will be printed")
@@ -36,7 +35,7 @@ var (
 
 func main() {
 	flag.Parse()
-	ascii = NewAscii(*alphabet, *mode, *asciiHeight, *asciiWidth, *exact, *negative, *debug)
+	ascii = NewAscii(*alphabet, *mode, *asciiHeight, *asciiWidth, *negative, *debug)
 	player = NewPlayer(defaultWidth, defaultHeight, defaultSampleRate, *showNthFrame, *fps)
 	err := player.Start(*filename)
 	handleError(err)

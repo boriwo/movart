@@ -57,10 +57,10 @@ type (
 		alphabet string
 		height, width int
 		mode string
-		exact bool
 		negative bool
 		debug bool
 		closest []*Artifact
+		blankArtifact *Artifact
 	}
 )
 
@@ -170,14 +170,14 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 	ascii.Lock()
 	defer ascii.Unlock()
 	defer ascii.trackTime(time.Now(), "analyze_image", 5, ascii.height-4)
-	boxWidth := (*img).Bounds().Dx() / ascii.width
-	boxHeight := (*img).Bounds().Dy() / ascii.height
-	max := 0
-	min := maxColor * boxHeight * boxWidth
 	var wait sync.WaitGroup
 	for l := 0; l < ascii.height; l++ {
 		wait.Add(1)
 		go func(l int) {
+			boxWidth := (*img).Bounds().Dx() / ascii.width
+			boxHeight := (*img).Bounds().Dy() / ascii.height
+			max := 0
+			min := maxColor * boxHeight * boxWidth
 			for o := 0; o < ascii.width; o++ {
 				ascii.points[l][o].r = 0
 				ascii.points[l][o].g = 0
@@ -199,42 +199,34 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 					max = ascii.points[l][o].sum
 				}
 			}
-			wait.Done()
-		}(l)
-	}
-	wait.Wait()
-	lastNormRGB := 0
-	for l := 0; l < ascii.height; l++ {
-		wait.Add(1)
-		go func(l int) {
 			var buffer bytes.Buffer
+			lastNormRGB := 0
 			for o := 0; o < ascii.width; o++ {
-				normGS := int(256 * (ascii.points[l][o].sum - min) / (max - min))
 				normR := ascii.points[l][o].r / (boxWidth * boxHeight)
 				normG := ascii.points[l][o].g / (boxWidth * boxHeight)
 				normB := ascii.points[l][o].b / (boxWidth * boxHeight)
-				a := ascii.closest[normGS]
+				a := ascii.blankArtifact
+				if max > min {
+					normGS := 256 * (ascii.points[l][o].sum - min) / (max - min)
+					a = ascii.closest[normGS]
+				}
 				if a.Text != " " {
-						switch ascii.mode {
-						case "color":
-							// only change color if change is substantial
-							if abs(lastNormRGB-(normR+normG+normG)) > 5 {
-								buffer.WriteString(getColor(normR, normG, normB))
-							}
-							break
-						case "gray":
-							// only change color if change is substantial
-							if abs(lastNormRGB-(normR+normG+normG)) > 5 {
-								buffer.WriteString(getGray(normR, normG, normB))
-							}
-							break
+					switch ascii.mode {
+					case "color":
+						// only change color if change is substantial
+						if abs(lastNormRGB-(normR+normG+normG)) > 5 {
+							buffer.WriteString(getColor(normR, normG, normB))
 						}
+						break
+					case "gray":
+						// only change color if change is substantial
+						if abs(lastNormRGB-(normR+normG+normG)) > 5 {
+							buffer.WriteString(getGray(normR, normG, normB))
+						}
+						break
+					}
 				}
-				if ascii.exact && a.NormGS != normGS {
-					buffer.WriteString(" ")
-				} else {
-					buffer.WriteString(a.Text)
-				}
+				buffer.WriteString(a.Text)
 				lastNormRGB = normR + normG + normB
 			}
 			ascii.lines[l] = buffer.String()
@@ -321,6 +313,12 @@ func (ascii *Ascii) analyzeFont(ttfFile string) {
 	ascii.artifacts.Normalize()
 	sort.Sort(ascii.artifacts)
 	ascii.artifacts = ascii.artifacts.removeDuplicates()
+	ascii.blankArtifact = ascii.artifacts[0]
+	for _, a := range ascii.artifacts {
+		if a.Text == " " {
+			ascii.blankArtifact = a
+		}
+	}
 	//saveCharacterMap(a)
 }
 
@@ -345,16 +343,21 @@ func (ascii *Ascii) loadCharacterMap() {
 		log.Fatal(err)
 	}
 	ascii.artifacts = a
+	ascii.blankArtifact = ascii.artifacts[0]
+	for _, a := range ascii.artifacts {
+		if a.Text == " " {
+			ascii.blankArtifact = a
+		}
+	}
 }
 
-func NewAscii(alphabet string, mode string, height, width int, exact, negative, debug bool) *Ascii {
+func NewAscii(alphabet string, mode string, height, width int, negative, debug bool) *Ascii {
 	fmt.Print("\033[2J") // clear screen
 	ascii := new(Ascii)
 	ascii.alphabet = alphabet
 	ascii.height = height
 	ascii.width = width
 	ascii.mode = mode
-	ascii.exact = exact
 	ascii.negative = negative
 	ascii.debug = debug
 	ascii.allocateAsciiArray()
