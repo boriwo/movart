@@ -211,12 +211,17 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 	lastNormRGB := 0
 	for l := 0; l < ascii.height; l++ {
 		wait.Add(1)
-		go func(l int) {
+		go func(l, min, max int) {
 			var buffer bytes.Buffer
 			for o := 0; o < ascii.width; o++ {
 				normGS := 0
 				if max > min {
-					normGS = int(256 * (ascii.points[l][o].sum - min) / (max - min))
+					normGS = 256 * (ascii.points[l][o].sum - min) / (max - min)
+				}
+				if normGS < 0 {
+					normGS = 0
+				} else if normGS > 256 {
+					normGS = 256
 				}
 				normR := ascii.points[l][o].r / (boxWidth * boxHeight)
 				normG := ascii.points[l][o].g / (boxWidth * boxHeight)
@@ -247,7 +252,7 @@ func (ascii *Ascii) analyzeImage(img *image.RGBA) {
 			}
 			ascii.lines[l] = buffer.String()
 			wait.Done()
-		}(l)
+		}(l, min, max)
 	}
 	wait.Wait()
 }
